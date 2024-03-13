@@ -6,10 +6,23 @@ from ossapi.enums import RankStatus
 import pyperclip as clipboard
 
 
+def init_api_client() -> Ossapi:
+    try:
+        with open('credentials.json') as credential_file:
+            credentials = json.load(credential_file)
+    except FileNotFoundError:
+        print('"credentials.json" not found.', end='')
+        print('Please enter your osu! API ID and secret.')
+        credentials = {
+            'id': input('ID: '),
+            'secret': input('Secret: ')
+        }
+        with open('credentials.json', 'x') as credential_file:
+            json.dump(credentials, credential_file)
+    return Ossapi(credentials['id'], credentials['secret'])
+
 def main():
-    with open('credentials.json') as client_file:
-        client = json.load(client_file)
-    api = Ossapi(client['id'], client['secret'])
+    api = init_api_client()
     
     map_link = input('Map link: ')
     map_id = int(map_link.split('/')[-1])
