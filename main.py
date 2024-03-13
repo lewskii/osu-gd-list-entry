@@ -6,7 +6,11 @@ from ossapi.enums import RankStatus
 import pyperclip as clipboard
 
     
-def prompt_diff(expected_diff: DiffLevel | None) -> DiffLevel:
+def get_diff(expected_diff: DiffLevel | None) -> DiffLevel:
+    '''Ask the user which difficulty level the diff is at.
+    
+    `expected_diff`: The default option, selected with an empty input.
+    '''
     if expected_diff is None:
         prompt = 'Diff level: '
     else:
@@ -21,7 +25,7 @@ def prompt_diff(expected_diff: DiffLevel | None) -> DiffLevel:
             if diff:
                 return diff
 
-def prompt_yesno(prompt: str, default: bool) -> bool:
+def yesno(prompt: str, default: bool) -> bool:
     '''Ask the user a yes/no question.
     
     Adds "` (Y/n) [y]: `" or "` (y/N): `" to `prompt` based on `default`.
@@ -43,20 +47,22 @@ def main():
     map_link = input('Map link: ')
     map_id = int(map_link.split('/')[-1])
     map = api.beatmap(map_id)
-    mapset = map.beatmapset()
 
+    # intuit and confirm the level of the diff
     expected_diff = difflevel.expected_diff(map)
-    diff = prompt_diff(expected_diff)
+    diff = get_diff(expected_diff)
     
-    use_unicode_artist = prompt_yesno('Unicode artist?', False)
-    use_unicode_title = prompt_yesno('Unicode title?', False)
-    
+    # decide whether to use unicode or romanised artist and title fields
+    use_unicode_artist = yesno('Unicode artist?', False)
+    use_unicode_title = yesno('Unicode title?', False)
+    mapset = map.beatmapset()
     artist = mapset.artist if not use_unicode_artist else mapset.artist_unicode
     title = mapset.title if not use_unicode_title else mapset.title_unicode
 
+    # build the bbcode of the entry
     bb_img = f'[img]{diff.image_url()}[/img]'
-    bb_title = f'{artist} - [b]{title}[/b] [{map.version}]'
-    bb_url = f'[url={map_link}]{bb_img} {bb_title}[/url]'
+    bb_title_row = f'{artist} - [b]{title}[/b] [{map.version}]'
+    bb_url = f'[url={map_link}]{bb_img} {bb_title_row}[/url]'
     bb_ranked_tag = ' [b]Ranked[/b]' if map.ranked == RankStatus.RANKED else ''
     final_bbcode = '\n\n' + bb_url + bb_ranked_tag
 
