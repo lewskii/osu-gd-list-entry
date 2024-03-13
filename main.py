@@ -1,43 +1,10 @@
+import cli
 import difflevel
-from difflevel import DiffLevel
 import json
 from ossapi import Ossapi
 from ossapi.enums import RankStatus
 import pyperclip as clipboard
 
-    
-def get_diff(expected_diff: DiffLevel | None) -> DiffLevel:
-    '''Ask the user which difficulty level the diff is at.
-    
-    `expected_diff`: The default option, selected with an empty input.
-    '''
-    if expected_diff is None:
-        prompt = 'Diff level: '
-    else:
-        prompt = f'Diff level [{expected_diff.value}]: '
-
-    while True: # prompt until valid input
-        diff_str = input(prompt).lower()
-        if expected_diff and not diff_str: # user accepted 'default' with enter
-            return expected_diff
-        else:
-            diff = DiffLevel.from_str(diff_str)
-            if diff:
-                return diff
-
-def yesno(prompt: str, default: bool) -> bool:
-    '''Ask the user a yes/no question.
-    
-    Adds "` (Y/n) [y]: `" or "` (y/N): `" to `prompt` based on `default`.
-    '''
-    answer_hint = '(Y/n)' if default else '(y/N)'
-    answer = input(f'{prompt} {answer_hint}')
-    if answer in ['y', 'yes']:
-        return True
-    elif answer in ['n', 'no']:
-        return False
-    else:
-        return default
 
 def main():
     with open('credentials.json') as client_file:
@@ -50,14 +17,30 @@ def main():
 
     # intuit and confirm the level of the diff
     expected_diff = difflevel.expected_diff(map)
-    diff = get_diff(expected_diff)
+    diff = cli.get_diff(expected_diff)
     
     # decide whether to use unicode or romanised artist and title fields
-    use_unicode_artist = yesno('Unicode artist?', False)
-    use_unicode_title = yesno('Unicode title?', False)
     mapset = map.beatmapset()
-    artist = mapset.artist if not use_unicode_artist else mapset.artist_unicode
-    title = mapset.title if not use_unicode_title else mapset.title_unicode
+
+    if mapset.artist != mapset.artist_unicode:
+        artist = cli.select_option(
+            "Unicode or romanised artist?",
+            mapset.artist_unicode,
+            mapset.artist,
+            default=0
+        )
+    else:
+        artist = mapset.artist
+
+    if mapset.title != mapset.title_unicode:
+        title = cli.select_option(
+            "Unicode or romanised title?",
+            mapset.title_unicode,
+            mapset.title,
+            default=0
+        )
+    else:
+        title = mapset.title
 
     # build the bbcode of the entry
     bb_img = f'[img]{diff.image_url()}[/img]'
